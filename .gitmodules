@@ -1,4 +1,4 @@
 [submodule "legion"]
 	path = legion
-	url = git@github.com:StanfordLegion/legion.git
+	url = https://github.com/StanfordLegion/legion.git
 	branch = control_replication
