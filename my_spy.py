@@ -39,6 +39,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import pprint
 
 # These are imported from legion_types.h
 NO_DEPENDENCE = 0
@@ -3199,6 +3200,20 @@ class FieldSpace(object):
             printer.println(self.node_name+' -> '+ field_id+
                     " [style=dotted,color=black,penwidth=2];")
 
+COST_PER_ACCESS = 1
+COST_PER_CONTENTION = 1
+class CostMetric(object):
+    access_op = []
+    contention_op = []
+    total_cost = 0
+    def __init__(self):
+        pass
+    @classmethod
+    def print(cls):
+        pprint.pprint(cls.access_op[:5])
+        print(cls.total_cost)
+
+
 class LogicalRegion(object):
     __slots__ = ['state', 'index_space', 'field_space', 'tree_id', 'children',
                  'name', 'parent', 'logical_state', 'verification_state', 
@@ -3459,6 +3474,8 @@ class LogicalRegion(object):
         else:
             # Do the actual work
             for point in point_set.iterator():
+                CostMetric.access_op.append((field, op, req, None, point, point_set))
+                CostMetric.total_cost += COST_PER_ACCESS
                 state = self.get_verification_state(depth, field, point)
                 if not state.perform_fill_verification(op, req, perform_checks, register, replicated):
                     return False
@@ -3530,6 +3547,9 @@ class LogicalRegion(object):
         else:
             # Do the actual work
             for point in point_set.iterator():
+                # print(f"david, field={field}, op={op}, req={req}, inst={inst}, point={point}, point_set={point_set}")
+                CostMetric.access_op.append((field, op, req, inst, point, point_set))
+                CostMetric.total_cost += COST_PER_ACCESS
                 state = self.get_verification_state(depth, field, point)
                 if not state.perform_physical_verification(op, req, inst, perform_checks, register_now):
                     return False
@@ -3551,6 +3571,8 @@ class LogicalRegion(object):
         else:
             # Do the actual work
             for point in point_set.iterator():
+                CostMetric.access_op.append((field, op, req, inst, point, point_set))
+                CostMetric.total_cost += COST_PER_ACCESS
                 state = self.get_verification_state(depth, field, point)
                 if not state.perform_registration_verification(op, req, inst, perform_checks, replicated):
                     return False
@@ -3567,6 +3589,8 @@ class LogicalRegion(object):
                 dst_depth, dst_field, dst_req, dst_inst, dst_versions)
         # Do the actual work
         for point in point_set.iterator():
+            CostMetric.access_op.append((src_field, op, src_req, src_inst, point, point_set))
+            CostMetric.total_cost += COST_PER_ACCESS
             state = self.get_verification_state(src_depth, src_field, point)
             assert point in dst_versions
             if not state.perform_copy_across_verification(op, redop, 
@@ -3583,6 +3607,8 @@ class LogicalRegion(object):
                     perform_checks, copies, point_set, depth, field, req, inst, versions)
         # Do the actual work
         for point in point_set.iterator():
+            CostMetric.access_op.append((field, op, req, inst, point, point_set))
+            CostMetric.total_cost += COST_PER_ACCESS
             state = self.get_verification_state(depth, field, point)
             if not state.perform_indirect_copy_verification(op, redop, perform_checks,
                     copies, depth, field, req, inst, versions):
@@ -14458,6 +14484,7 @@ def main(temp_dir):
         top_task.perform_task_collective_checks()
 
     print('Legion Spy analysis complete.  Exiting...')
+    CostMetric.print()
     if keep_temp_files:
         try:
             subprocess.check_call('cp '+temp_dir+'* .',shell=True)
