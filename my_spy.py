@@ -3205,13 +3205,35 @@ COST_PER_CONTENTION = 1
 class CostMetric(object):
     access_op = []
     contention_op = []
+    access_cost = 0
+    contention_cost = 0
     total_cost = 0
     def __init__(self):
         pass
+
+    @classmethod
+    def calculate_contention(cls):
+        # (field, point) --> the number of times to access it
+        contention_dict = {}
+        for item in cls.access_op:
+            field, op, req, inst, point, point_set = item
+            key = (field, point)
+            if key in contention_dict.keys():
+                contention_dict[key] += 1
+            else:
+                contention_dict[key] = 1
+        pprint.pprint(contention_dict)
+        for key in contention_dict.keys():
+            cls.contention_cost += contention_dict[key] * contention_dict[key] * COST_PER_CONTENTION
+
     @classmethod
     def print(cls):
         pprint.pprint(cls.access_op[:5])
-        print(cls.total_cost)
+        print("access cost", cls.access_cost)
+        cls.calculate_contention()
+        print("contention cost", cls.contention_cost)
+        cls.total_cost = cls.access_cost + cls.contention_cost
+        print("total cost", cls.total_cost)
 
 
 class LogicalRegion(object):
@@ -3475,7 +3497,7 @@ class LogicalRegion(object):
             # Do the actual work
             for point in point_set.iterator():
                 CostMetric.access_op.append((field, op, req, None, point, point_set))
-                CostMetric.total_cost += COST_PER_ACCESS
+                CostMetric.access_cost += COST_PER_ACCESS
                 state = self.get_verification_state(depth, field, point)
                 if not state.perform_fill_verification(op, req, perform_checks, register, replicated):
                     return False
@@ -3549,7 +3571,7 @@ class LogicalRegion(object):
             for point in point_set.iterator():
                 # print(f"david, field={field}, op={op}, req={req}, inst={inst}, point={point}, point_set={point_set}")
                 CostMetric.access_op.append((field, op, req, inst, point, point_set))
-                CostMetric.total_cost += COST_PER_ACCESS
+                CostMetric.access_cost += COST_PER_ACCESS
                 state = self.get_verification_state(depth, field, point)
                 if not state.perform_physical_verification(op, req, inst, perform_checks, register_now):
                     return False
@@ -3572,7 +3594,7 @@ class LogicalRegion(object):
             # Do the actual work
             for point in point_set.iterator():
                 CostMetric.access_op.append((field, op, req, inst, point, point_set))
-                CostMetric.total_cost += COST_PER_ACCESS
+                CostMetric.access_cost += COST_PER_ACCESS
                 state = self.get_verification_state(depth, field, point)
                 if not state.perform_registration_verification(op, req, inst, perform_checks, replicated):
                     return False
@@ -3590,7 +3612,8 @@ class LogicalRegion(object):
         # Do the actual work
         for point in point_set.iterator():
             CostMetric.access_op.append((src_field, op, src_req, src_inst, point, point_set))
-            CostMetric.total_cost += COST_PER_ACCESS
+            CostMetric.access_op.append((dst_field, op, dst_req, dst_inst, point, point_set))
+            CostMetric.access_cost += COST_PER_ACCESS * 2
             state = self.get_verification_state(src_depth, src_field, point)
             assert point in dst_versions
             if not state.perform_copy_across_verification(op, redop, 
@@ -3608,7 +3631,7 @@ class LogicalRegion(object):
         # Do the actual work
         for point in point_set.iterator():
             CostMetric.access_op.append((field, op, req, inst, point, point_set))
-            CostMetric.total_cost += COST_PER_ACCESS
+            CostMetric.access_cost += COST_PER_ACCESS
             state = self.get_verification_state(depth, field, point)
             if not state.perform_indirect_copy_verification(op, redop, perform_checks,
                     copies, depth, field, req, inst, versions):
