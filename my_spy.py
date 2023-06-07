@@ -3234,6 +3234,14 @@ class CostMetric(object):
         print("contention cost", cls.contention_cost)
         cls.total_cost = cls.access_cost + cls.contention_cost
         print("total cost", cls.total_cost)
+    
+    @classmethod
+    def dump(cls, fname):
+        filename = "trace_" + fname
+        with open(filename, 'w') as f:
+            for item in cls.access_op:
+                field, op, req, inst, point, point_set = item
+                f.write(f"{field}, {point_set}\n")
 
 
 class LogicalRegion(object):
@@ -14508,6 +14516,7 @@ def main(temp_dir):
 
     print('Legion Spy analysis complete.  Exiting...')
     CostMetric.print()
+    CostMetric.dump(file_names[0])
     if keep_temp_files:
         try:
             subprocess.check_call('cp '+temp_dir+'* .',shell=True)
