@@ -3213,18 +3213,19 @@ class CostMetric(object):
 
     @classmethod
     def calculate_contention(cls):
-        # (field, point) --> the number of times to access it
-        contention_dict = {}
-        for item in cls.access_op:
-            field, op, req, inst, point, point_set = item
-            key = (field, point)
-            if key in contention_dict.keys():
-                contention_dict[key] += 1
-            else:
-                contention_dict[key] = 1
-        pprint.pprint(contention_dict)
-        for key in contention_dict.keys():
-            cls.contention_cost += contention_dict[key] * contention_dict[key] * COST_PER_CONTENTION
+        # # (field, point) --> the number of times to access it
+        # contention_dict = {}
+        # for item in cls.access_op:
+        #     field, op, req, inst, point, point_set = item
+        #     key = (field, point)
+        #     if key in contention_dict.keys():
+        #         contention_dict[key] += 1
+        #     else:
+        #         contention_dict[key] = 1
+        # pprint.pprint(contention_dict)
+        # for key in contention_dict.keys():
+        #     cls.contention_cost += contention_dict[key] * contention_dict[key] * COST_PER_CONTENTION
+        pass
 
     @classmethod
     def print(cls):
@@ -3238,11 +3239,16 @@ class CostMetric(object):
     @classmethod
     def dump(cls, fname):
         filename = "trace_" + fname
+        points = set()
         with open(filename, 'w') as f:
             for item in cls.access_op:
-                field, op, req, inst, point, point_set = item
-                f.write(f"{field}, {point_set}\n")
-
+                field, op, req, inst, kind_str, point_set = item
+                assert req.index_node.point_set == point_set
+                for point in point_set.points:
+                    points.add(point)
+                f.write(f"{field}, {op}, {kind_str}, {point_set}, {req.index_node}, {req.index_node.shape}\n")
+            for point in points:
+                f.write(f"{point}, {point.shape}\n")
 
 class LogicalRegion(object):
     __slots__ = ['state', 'index_space', 'field_space', 'tree_id', 'children',
@@ -3503,9 +3509,9 @@ class LogicalRegion(object):
                                             perform_checks, register, replicated, point_set)
         else:
             # Do the actual work
+            CostMetric.access_op.append((field, op, req, None, "fill", point_set))
+            CostMetric.access_cost += COST_PER_ACCESS
             for point in point_set.iterator():
-                CostMetric.access_op.append((field, op, req, None, point, point_set))
-                CostMetric.access_cost += COST_PER_ACCESS
                 state = self.get_verification_state(depth, field, point)
                 if not state.perform_fill_verification(op, req, perform_checks, register, replicated):
                     return False
@@ -3576,10 +3582,9 @@ class LogicalRegion(object):
                    register_now=register_now, point_set=point_set)
         else:
             # Do the actual work
+            CostMetric.access_op.append((field, op, req, inst, "physical", point_set))
+            CostMetric.access_cost += COST_PER_ACCESS
             for point in point_set.iterator():
-                # print(f"david, field={field}, op={op}, req={req}, inst={inst}, point={point}, point_set={point_set}")
-                CostMetric.access_op.append((field, op, req, inst, point, point_set))
-                CostMetric.access_cost += COST_PER_ACCESS
                 state = self.get_verification_state(depth, field, point)
                 if not state.perform_physical_verification(op, req, inst, perform_checks, register_now):
                     return False
@@ -3600,9 +3605,9 @@ class LogicalRegion(object):
                     op, req, inst, perform_checks, replicated, point_set)
         else:
             # Do the actual work
+            # CostMetric.access_op.append((field, op, req, inst, "registration", point_set))
+            # CostMetric.access_cost += COST_PER_ACCESS
             for point in point_set.iterator():
-                CostMetric.access_op.append((field, op, req, inst, point, point_set))
-                CostMetric.access_cost += COST_PER_ACCESS
                 state = self.get_verification_state(depth, field, point)
                 if not state.perform_registration_verification(op, req, inst, perform_checks, replicated):
                     return False
@@ -3618,10 +3623,10 @@ class LogicalRegion(object):
                 perform_checks, point_set, src_depth, src_field, src_req, src_inst,
                 dst_depth, dst_field, dst_req, dst_inst, dst_versions)
         # Do the actual work
+        CostMetric.access_op.append((src_field, op, src_req, src_inst, "copy_across", point_set))
+        CostMetric.access_op.append((dst_field, op, dst_req, dst_inst, "copy_across", point_set))
+        CostMetric.access_cost += COST_PER_ACCESS * 2
         for point in point_set.iterator():
-            CostMetric.access_op.append((src_field, op, src_req, src_inst, point, point_set))
-            CostMetric.access_op.append((dst_field, op, dst_req, dst_inst, point, point_set))
-            CostMetric.access_cost += COST_PER_ACCESS * 2
             state = self.get_verification_state(src_depth, src_field, point)
             assert point in dst_versions
             if not state.perform_copy_across_verification(op, redop, 
@@ -3637,9 +3642,9 @@ class LogicalRegion(object):
             return self.parent.parent.perform_indirect_copy_verification(op, redop,
                     perform_checks, copies, point_set, depth, field, req, inst, versions)
         # Do the actual work
+        CostMetric.access_op.append((field, op, req, inst, "indirect_copy", point_set))
+        CostMetric.access_cost += COST_PER_ACCESS
         for point in point_set.iterator():
-            CostMetric.access_op.append((field, op, req, inst, point, point_set))
-            CostMetric.access_cost += COST_PER_ACCESS
             state = self.get_verification_state(depth, field, point)
             if not state.perform_indirect_copy_verification(op, redop, perform_checks,
                     copies, depth, field, req, inst, versions):
