@@ -3246,7 +3246,15 @@ class CostMetric(object):
                 assert req.index_node.point_set == point_set
                 for point in point_set.points:
                     points.add(point)
-                f.write(f"{field}, {op}, {kind_str}, {point_set}, {req.index_node}, {req.index_node.shape}\n")
+                f.write(f"{field}, {op}, {'index_task' if op.index_owner != None else 'single_task'}, "
+                       +(f"{op.index_owner.launch_shape}, {op.index_point}, " if op.index_owner is not None else 'None, None, ')
+                       # fill/phyiscal, points,   Index Subspace 3, 0-255
+                       +f"{kind_str}, {point_set}, {req.index_node}, {req.index_node.shape}, "
+                       # color of the subspace
+                       +f"{req.index_node.color if req.index_node.color.dim != 0 else 'None'}, "
+                       # index partition, parent index space, parent index space's shape
+                       +(f"{req.index_node.parent}, {req.index_node.parent.parent}, {req.index_node.parent.parent.shape}" if req.index_node.parent is not None else 'None, None, None')
+                       +"\n")
             for point in points:
                 f.write(f"{point}, {point.shape}\n")
 
