@@ -3246,7 +3246,8 @@ class CostMetric(object):
                 assert req.index_node.point_set == point_set
                 for point in point_set.points:
                     points.add(point)
-                f.write(f"{field}, {op}, "
+                f.write(f"{field}, {req.logical_node.tree_id}, "
+                       + f"{op}, "
                        +(('index task ' + str(op.index_owner.uid)) if op.index_owner != None else ('single task ' + str(op.uid)))
                        +(f", {op.index_owner.launch_shape}, {op.index_point}, " if op.index_owner is not None else ', None, None, ')
                        # fill/phyiscal, points,   Index Subspace 3, 0-255
