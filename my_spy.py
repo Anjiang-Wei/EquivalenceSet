@@ -3200,6 +3200,7 @@ class FieldSpace(object):
             printer.println(self.node_name+' -> '+ field_id+
                     " [style=dotted,color=black,penwidth=2];")
 
+import algorithm
 COST_PER_ACCESS = 1
 COST_PER_CONTENTION = 1
 class CostMetric(object):
@@ -3229,12 +3230,13 @@ class CostMetric(object):
 
     @classmethod
     def print(cls):
-        pprint.pprint(cls.access_op[:5])
-        print("access cost", cls.access_cost)
-        cls.calculate_contention()
-        print("contention cost", cls.contention_cost)
-        cls.total_cost = cls.access_cost + cls.contention_cost
-        print("total cost", cls.total_cost)
+        # pprint.pprint(cls.access_op[:5])
+        # print("access cost", cls.access_cost)
+        # cls.calculate_contention()
+        # print("contention cost", cls.contention_cost)
+        # cls.total_cost = cls.access_cost + cls.contention_cost
+        # print("total cost", cls.total_cost)
+        pass
     
     @classmethod
     def dump(cls, fname):
@@ -3246,6 +3248,8 @@ class CostMetric(object):
                 assert req.index_node.point_set == point_set
                 for point in point_set.points:
                     points.add(point)
+                if req.index_node.parent is not None:
+                    assert req.index_node.parent.parent.point_set == req.index_node.parent.point_set
                 f.write(f"{field}, {req.logical_node.tree_id}, "
                        + f"{op}, "
                        +(('index task ' + str(op.index_owner.uid)) if op.index_owner != None else ('single task ' + str(op.uid)))
@@ -3254,11 +3258,16 @@ class CostMetric(object):
                        +f"{kind_str}, {point_set}, {req.index_node}, {req.index_node.shape}, "
                        # color of the subspace
                        +f"{req.index_node.color if req.index_node.color.dim != 0 else 'None'}, "
-                       # index partition, parent index space, parent index space's shape
-                       +(f"{req.index_node.parent}, {req.index_node.parent.parent}, {req.index_node.parent.parent.shape}" if req.index_node.parent is not None else 'None, None, None')
+                       # index partition, parent index space, parent index space's shape, parent index space's points
+                       +(f"{req.index_node.parent}, {req.index_node.parent.parent}, {req.index_node.parent.parent.shape}, {req.index_node.parent.point_set}" if req.index_node.parent is not None else 'None, None, None')
                        +"\n")
             for point in points:
                 f.write(f"{point}, {point.shape}\n")
+    
+    @classmethod
+    def dump_to_algorithm(cls):
+        recordobj = algorithm.Record(cls.access_op)
+        recordobj.print_trace()
 
 class LogicalRegion(object):
     __slots__ = ['state', 'index_space', 'field_space', 'tree_id', 'children',
@@ -14532,6 +14541,7 @@ def main(temp_dir):
     print('Legion Spy analysis complete.  Exiting...')
     CostMetric.print()
     CostMetric.dump(file_names[0])
+    CostMetric.dump_to_algorithm()
     if keep_temp_files:
         try:
             subprocess.check_call('cp '+temp_dir+'* .',shell=True)
