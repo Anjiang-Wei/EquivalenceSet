@@ -60,7 +60,14 @@ class Record(object):
         return field_trace, field_parent
     @staticmethod
     def compute_access_cost(trace_pointset_list, cur_bvh):
-        return 1
+        # trace_pointset_list: list of [program access]; each access is a list of PointSet, representing point tasks
+        cost_per_access = 1
+        access_cost = 0
+        for point_task_pset in trace_pointset_list:
+            for bvh_pset in cur_bvh:
+                if len(point_task_pset & bvh_pset) > 0:
+                    access_cost += cost_per_access
+        return access_cost
     @staticmethod
     def compute_contention_cost(trace_pointset_list, cur_bvh):
         return 1
@@ -77,7 +84,7 @@ class Record(object):
             parent_point_set = self.field_parent[key]
             for trace_pointset_list in trace_pointset_list_all:
                 cur_bvh = algo.generate_bvh(trace_pointset_list, parent_point_set)
-                print(key, cur_bvh)
+                print(f"{key}, access={trace_pointset_list}, bvh_view={cur_bvh}")
                 access_cost += self.compute_access_cost(trace_pointset_list, cur_bvh)
                 contention_cost += self.compute_contention_cost(trace_pointset_list, cur_bvh)
                 if prev_bvh != None:
