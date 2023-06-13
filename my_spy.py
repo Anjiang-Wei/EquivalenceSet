@@ -3268,6 +3268,8 @@ class CostMetric(object):
     def dump_to_algorithm(cls):
         recordobj = algorithm.Record(cls.access_op)
         recordobj.print_trace()
+        algobj = algorithm.Algo()
+        recordobj.eval_algo(algobj)
 
 class LogicalRegion(object):
     __slots__ = ['state', 'index_space', 'field_space', 'tree_id', 'children',
