@@ -60,7 +60,7 @@ class Record(object):
         return field_trace, field_parent
     @staticmethod
     def compute_access_cost(trace_pointset_list, cur_bvh):
-        # trace_pointset_list: list of [program access]; each access is a list of PointSet, representing point tasks
+        # trace_pointset_list: list of [program access]; each access is a list of PointSet, representing concurrent point tasks
         cost_per_access = 1
         access_cost = 0
         for point_task_pset in trace_pointset_list:
@@ -70,7 +70,18 @@ class Record(object):
         return access_cost
     @staticmethod
     def compute_contention_cost(trace_pointset_list, cur_bvh):
-        return 1
+        cost_per_contention = 1
+        contention_cost = 0
+        contention_dict = {}
+        for point_task_pset in trace_pointset_list:
+            for i in range(len(cur_bvh)):
+                bvh_pset = cur_bvh[i]
+                if len(point_task_pset & bvh_pset) > 0:
+                    contention_dict[i] = contention_dict.get(i, 0) + 1
+        for key in contention_dict.keys():
+            contention_cost += cost_per_contention * contention_dict[key] * contention_dict[key]
+        # print(f"{trace_pointset_list}, {cur_bvh}, {contention_cost}")
+        return contention_cost
     @staticmethod
     def compute_switch_cost(prev_bvh, cur_bvh):
         return 1
