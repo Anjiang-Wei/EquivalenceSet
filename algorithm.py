@@ -87,12 +87,12 @@ class Record(object):
         if prev_bvh == cur_bvh:
             return 0
         cost_per_switch = 10
-        contention_time = 0
+        exchange_time = 0
         for prev_pset in prev_bvh:
             for cur_pset in cur_bvh:
                 if len(prev_pset & cur_pset) > 0:
-                    contention_time += 1
-        return contention_time * cost_per_switch
+                    exchange_time += 1
+        return exchange_time * cost_per_switch
     def eval_algo(self, algo):
         for key in self.field_trace:
             prev_bvh = None
