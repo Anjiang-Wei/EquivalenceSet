@@ -58,13 +58,33 @@ class Record(object):
                 field_trace[newkey] = [grp_trace[key]]
                 field_parent[newkey] = grp_parent[key]
         return field_trace, field_parent
+    @staticmethod
+    def compute_access_cost(trace_pointset_list, cur_bvh):
+        return 1
+    @staticmethod
+    def compute_contention_cost(trace_pointset_list, cur_bvh):
+        return 1
+    @staticmethod
+    def compute_switch_cost(prev_bvh, cur_bvh):
+        return 1
     def eval_algo(self, algo):
         for key in self.field_trace:
+            prev_bvh = None
+            access_cost = 0
+            contention_cost = 0
+            switch_cost = 0
             trace_pointset_list_all = self.field_trace[key]
             parent_point_set = self.field_parent[key]
             for trace_pointset_list in trace_pointset_list_all:
-                bvh = algo.generate_bvh(trace_pointset_list, parent_point_set)
-                print(key, bvh)
+                cur_bvh = algo.generate_bvh(trace_pointset_list, parent_point_set)
+                print(key, cur_bvh)
+                access_cost += self.compute_access_cost(trace_pointset_list, cur_bvh)
+                contention_cost += self.compute_contention_cost(trace_pointset_list, cur_bvh)
+                if prev_bvh != None:
+                    switch_cost += self.compute_switch_cost(prev_bvh, cur_bvh)
+                prev_bvh = cur_bvh
+            print(f"{key}, access = {access_cost}, contention = {contention_cost}, switch = {switch_cost}")
+            # different field should have different analysis
             algo.clear()
         pprint.pprint(self.field_trace)
         pprint.pprint(self.field_parent)
