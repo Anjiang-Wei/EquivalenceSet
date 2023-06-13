@@ -6,12 +6,13 @@ class Record(object):
         self.trace = trace_op
         self.grp_trace, self.grp_parent = self.group_trace(trace_op)
         self.field_trace, self.field_parent = self.group_by_field(self.grp_trace, self.grp_parent)
-    
-    def extract_item(self, item):
+    @staticmethod
+    def extract_item(item):
         # field, region_tree_id, task_id, point_set, parent_point_set
         field, op, req, inst, kind_str, point_set = item
         return field, req.logical_node.tree_id, op.index_owner.uid if op.index_owner != None else op.uid, \
-            point_set, req.index_node.parent.point_set if req.index_node.parent is not None else point_set
+            point_set, req.parent.index_space.point_set
+            # req.index_node.parent.point_set
     def extract_points(self):
         points = set()
         for item in self.trace:
@@ -37,7 +38,8 @@ class Record(object):
             value_parent = parent_point_set
             if key in grp_trace.keys():
                 grp_trace[key].append(value_trace)
-                assert grp_parent[key] == value_parent
+                # same task launch (same task_id) should have the same parent index space for regions
+                assert grp_parent[key] == value_parent, f"{key}: {grp_parent[key]} versus {value_parent}"
             else:
                 grp_trace[key] = [value_trace]
                 grp_parent[key] = value_parent
@@ -50,7 +52,8 @@ class Record(object):
             newkey = (field, region_tree_id)
             if newkey in field_trace.keys():
                 field_trace[newkey].append(grp_trace[key])
-                assert field_parent[newkey] == grp_parent[key]
+                # different task launch can have different index spaces for regions; union them
+                field_parent[newkey] = field_parent[newkey] | grp_parent[key]
             else:
                 field_trace[newkey] = [grp_trace[key]]
                 field_parent[newkey] = grp_parent[key]
@@ -86,7 +89,9 @@ class Algo(object):
             if Algo.union_point_set(trace_points_list) == parent_point_set.points:
                 self.history_bvh.append(trace_points_list)
             else:
-                assert False
+                first_half = list(parent_point_set.points)[:len(parent_point_set.points)//2]
+                second_half = list(parent_point_set.points)[len(parent_point_set.points)//2:]
+                self.history_bvh.append([first_half, second_half])
         return self.history_bvh[0]
     def clear(self):
         self.history_bvh = []
