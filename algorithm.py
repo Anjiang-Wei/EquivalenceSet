@@ -192,17 +192,25 @@ class Algo(object):
             for point in point_set.points:
                 union.add(point)
         return union
+    @staticmethod
+    def disjoint_point_sets(point_set_list):
+        for i in range(len(point_set_list)):
+            for j in range(i+1, len(point_set_list)):
+                # has intersection
+                if len(point_set_list[i] & point_set_list[j]) > 0:
+                    return False
+        return True
     def generate_bvh(self, trace_points_list, parent_point_set):
         # trace_points_list: the list of smallest points that each point task access
         # parent_point_set: all points that the index launch accesses
         if len(self.history_bvh) == 0:
-            if Algo.union_point_set(trace_points_list) == parent_point_set.points:
+            if Algo.union_point_set(trace_points_list) == parent_point_set.points and self.disjoint_point_sets(trace_points_list):
                 self.history_bvh.append(trace_points_list)
             else:
                 first_half = list(parent_point_set.points)[:len(parent_point_set.points)//2]
                 second_half = list(parent_point_set.points)[len(parent_point_set.points)//2:]
                 self.history_bvh.append([first_half, second_half])
-        return self.history_bvh[0]
+        return self.history_bvh[-1]
     def clear(self):
         self.history_bvh = []
 

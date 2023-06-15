@@ -3274,8 +3274,8 @@ class CostMetric(object):
         recordobj.print_trace()
         algobj = algorithm.Algo()
         recordobj.eval_algo(algobj)
-        print("----")
-        recordobj.find_optimal_bvh()
+        # print("----")
+        # recordobj.find_optimal_bvh()
 
 class LogicalRegion(object):
     __slots__ = ['state', 'index_space', 'field_space', 'tree_id', 'children',
