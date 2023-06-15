@@ -117,6 +117,70 @@ class Record(object):
         # for key in self.grp_trace.keys():
         #     trace_pointset_list = self.grp_trace[key]
         #     parent_point_set = self.grp_parent[key]
+    def find_optimal_bvh(self):
+        best_record = {}
+        for key in self.field_trace:
+            min_total_cost = 1e20
+            best_bvh = None
+            trace_pointset_list_all = self.field_trace[key]
+            parent_point_set = self.field_parent[key]
+            # enumerate all possible disjoint&complete partitions
+            all_bvh = self.generate_all_bvh(parent_point_set)
+            # enumerate all possible orderings up to a given length (length of program trace)
+            all_ordering_bvh = self.generate_all_ordering_bvh(all_bvh, len(trace_pointset_list_all))
+            assert len(all_ordering_bvh) == pow(len(all_bvh), len(trace_pointset_list_all))
+            for cur_ordering_bvh in all_ordering_bvh:
+                access_cost = 0
+                contention_cost = 0
+                switch_cost = 0
+                cur_total_cost = 0
+                prev_bvh = None
+                assert len(cur_ordering_bvh) == len(trace_pointset_list_all)
+                for i in range(len(trace_pointset_list_all)):
+                    trace_pointset_list = trace_pointset_list_all[i]
+                    cur_bvh = cur_ordering_bvh[i]
+                    access_cost += self.compute_access_cost(trace_pointset_list, cur_bvh)
+                    contention_cost += self.compute_contention_cost(trace_pointset_list, cur_bvh)
+                    if prev_bvh != None:
+                        switch_cost += self.compute_switch_cost(prev_bvh, cur_bvh)
+                    prev_bvh = cur_bvh
+                    cur_total_cost += access_cost + contention_cost + switch_cost
+                if cur_total_cost < min_total_cost:
+                    min_total_cost = cur_total_cost
+                    best_bvh = cur_ordering_bvh
+            best_record[key] = (min_total_cost, best_bvh)
+        pprint.pprint(best_record)
+
+    @staticmethod
+    def partition(collection):
+        if len(collection) == 1:
+            yield [ collection ]
+            return
+
+        first = collection[0]
+        for smaller in Record.partition(collection[1:]):
+            # insert `first` in each of the subpartition's subsets
+            for n, subset in enumerate(smaller):
+                yield smaller[:n] + [[ first ] + subset]  + smaller[n+1:]
+            # put `first` in its own subset
+            yield [ [ first ] ] + smaller
+
+    @staticmethod
+    def generate_all_bvh(point_set):
+        all_res = []
+        for each_partition in Record.partition(list(point_set.points)):
+            point_sets = []
+            for points in each_partition:
+                point_set = my_spy.PointSet()
+                point_set.points = points
+                point_sets.append(point_set)
+            all_res.append(point_sets)
+        return all_res
+
+    @staticmethod
+    def generate_all_ordering_bvh(all_bvh, length):
+        # todo: orderings of bvh
+        pass
 
 class Algo(object):
     def __init__(self):
@@ -141,3 +205,7 @@ class Algo(object):
         return self.history_bvh[0]
     def clear(self):
         self.history_bvh = []
+
+if __name__ == "__main__":
+    for item in Record.partition([1, 2, 3, 4, 5]):
+        print(item)
