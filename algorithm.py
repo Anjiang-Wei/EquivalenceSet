@@ -214,6 +214,21 @@ class Algo(object):
     def clear(self):
         self.history_bvh = []
 
+class Algo2(object):
+    def __init__(self):
+        self.history_bvh = []
+    def generate_bvh(self, trace_points_list, parent_point_set):
+        # trace_points_list: the list of smallest points that each point task access
+        # parent_point_set: all points that the index launch accesses
+        res = []
+        for point in parent_point_set.points:
+            a = my_spy.PointSet()
+            a.add_point(point)
+            res.append(a)
+        return res
+    def clear(self):
+        self.history_bvh = []
+
 if __name__ == "__main__":
     for item in Record.partition([1, 2, 3, 4, 5]):
         print(item)

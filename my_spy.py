@@ -3274,6 +3274,9 @@ class CostMetric(object):
         recordobj.print_trace()
         algobj = algorithm.Algo()
         recordobj.eval_algo(algobj)
+        print("-------")
+        algobj2 = algorithm.Algo2()
+        recordobj.eval_algo(algobj2)
         # print("----")
         # recordobj.find_optimal_bvh()
 
