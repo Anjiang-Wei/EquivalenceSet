@@ -77,7 +77,8 @@ class Record(object):
             for i in range(len(cur_bvh)):
                 bvh_pset = cur_bvh[i]
                 if len(point_task_pset & bvh_pset) > 0:
-                    contention_dict[i] = contention_dict.get(i, 0) + 1
+                    # contention cost = 0 if there is only one region access
+                    contention_dict[i] = contention_dict.get(i, -1) + 1
         for key in contention_dict.keys():
             contention_cost += cost_per_contention * contention_dict[key] * contention_dict[key]
         # print(f"{trace_pointset_list}, {cur_bvh}, {contention_cost}")
