@@ -188,6 +188,7 @@ class Record(object):
         pass
 
 class Algo(object):
+    # this algorithm respects the application's disjoint and complete partition
     def __init__(self):
         self.history_bvh = []
     @staticmethod
@@ -209,17 +210,22 @@ class Algo(object):
         # trace_points_list: the list of smallest points that each point task access
         # parent_point_set: all points that the index launch accesses
         if len(self.history_bvh) == 0:
+            # if the BVH is complete (union equals to whole space) and disjoint (no overlapping), then use it
             if Algo.union_point_set(trace_points_list) == parent_point_set.points and self.disjoint_point_sets(trace_points_list):
                 self.history_bvh.append(trace_points_list)
             else:
+                # construct a random BVH by partition the whole space in the middle
                 first_half = list(parent_point_set.points)[:len(parent_point_set.points)//2]
                 second_half = list(parent_point_set.points)[len(parent_point_set.points)//2:]
                 self.history_bvh.append([first_half, second_half])
+        # keep using the old BVH
         return self.history_bvh[-1]
     def clear(self):
         self.history_bvh = []
 
 class Algo2(object):
+    # this algorithm can help us understand the minimum contention, maximum access, 0 switching
+    # by using the finest-granularity of point sets
     def __init__(self):
         self.history_bvh = []
     def generate_bvh(self, trace_points_list: List[PointSet], parent_point_set: PointSet):
