@@ -1,5 +1,9 @@
 import my_spy
 import pprint
+from typing import List
+
+PointSet = my_spy.PointSet
+
 class Record(object):
     def __init__(self, trace_op):
         # field, op, req, inst, kind_str, point_set
@@ -100,8 +104,8 @@ class Record(object):
             access_cost = 0
             contention_cost = 0
             switch_cost = 0
-            trace_pointset_list_all = self.field_trace[key]
-            parent_point_set = self.field_parent[key]
+            trace_pointset_list_all: list[list[PointSet]] = self.field_trace[key]
+            parent_point_set: PointSet = self.field_parent[key]
             for trace_pointset_list in trace_pointset_list_all:
                 cur_bvh = algo.generate_bvh(trace_pointset_list, parent_point_set)
                 print(f"{key}, access={trace_pointset_list}, bvh_view={cur_bvh}")
@@ -187,21 +191,21 @@ class Algo(object):
     def __init__(self):
         self.history_bvh = []
     @staticmethod
-    def union_point_set(point_set_list):
+    def union_point_set(point_set_list: List[PointSet]):
         union = set()
         for point_set in point_set_list:
             for point in point_set.points:
                 union.add(point)
         return union
     @staticmethod
-    def disjoint_point_sets(point_set_list):
+    def disjoint_point_sets(point_set_list: List[PointSet]):
         for i in range(len(point_set_list)):
             for j in range(i+1, len(point_set_list)):
                 # has intersection
                 if len(point_set_list[i] & point_set_list[j]) > 0:
                     return False
         return True
-    def generate_bvh(self, trace_points_list, parent_point_set):
+    def generate_bvh(self, trace_points_list: List[PointSet], parent_point_set: PointSet):
         # trace_points_list: the list of smallest points that each point task access
         # parent_point_set: all points that the index launch accesses
         if len(self.history_bvh) == 0:
@@ -218,7 +222,7 @@ class Algo(object):
 class Algo2(object):
     def __init__(self):
         self.history_bvh = []
-    def generate_bvh(self, trace_points_list, parent_point_set):
+    def generate_bvh(self, trace_points_list: List[PointSet], parent_point_set: PointSet):
         # trace_points_list: the list of smallest points that each point task access
         # parent_point_set: all points that the index launch accesses
         res = []
